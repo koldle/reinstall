@@ -257,6 +257,22 @@ update_part() {
     sleep 1
 }
 
+get_nixos_efi_part_end() {
+    local efi_size_mb
+
+    if [ -n "$NIXOS_EFI_SIZE_MB" ]; then
+        if ! echo "$NIXOS_EFI_SIZE_MB" | grep -Eq '^[1-9][0-9]*$'; then
+            error_and_exit "Invalid NIXOS_EFI_SIZE_MB: $NIXOS_EFI_SIZE_MB"
+        fi
+        efi_size_mb=$NIXOS_EFI_SIZE_MB
+    else
+        efi_size_mb=512
+    fi
+
+    # efi 分区从 1MiB 开始，因此结束位置要额外 +1MiB
+    echo "$((efi_size_mb + 1))MiB"
+}
+
 is_efi() {
     if [ -n "$force_boot_mode" ]; then
         [ "$force_boot_mode" = efi ]
@@ -1713,7 +1729,6 @@ install_nixos() {
             sh=$sh_mirror/nix-$nix_ver/install
         else
             # 最新版 nix 在 nixos-install 时可能会出问题
-            # https://github.com/bin456789/reinstall/issues/451
             if is_in_china; then
                 sh=https://mirror.nju.edu.cn/nix/latest/install
             else
@@ -2760,11 +2775,17 @@ create_part() {
         # 而且 alpine 的 extlinux 不兼容 64bit ext4
         [ "$distro" = alpine ] && ext4_opts="-O ^64bit" || ext4_opts=
         if is_efi; then
+            if [ "$distro" = nixos ]; then
+                efi_part_end=$(get_nixos_efi_part_end)
+            else
+                efi_part_end=101MiB
+            fi
+
             # efi
             parted /dev/$xda -s -- \
                 mklabel gpt \
-                mkpart '" "' fat32 1MiB 101MiB \
-                mkpart '" "' ext4 101MiB 100% \
+                mkpart '" "' fat32 1MiB $efi_part_end \
+                mkpart '" "' ext4 $efi_part_end 100% \
                 set 1 boot on
             update_part
 
@@ -7464,7 +7485,6 @@ trans() {
 
     # 先检查 modloop 是否正常
     # 防止格式化硬盘后，缺少 ext4 模块导致 mount 失败
-    # https://github.com/bin456789/reinstall/issues/136
     ensure_service_started modloop
 
     cat /proc/cmdline
@@ -7625,7 +7645,7 @@ mount / -o remount,size=100%
 
 # 同步时间
 # 1. 可以防止访问 https 出错
-# 2. 可以防止 https://github.com/bin456789/reinstall/issues/223
+# 2. 可以防止 apt 提示 Release file is not valid yet.
 #    E: Release file for http://security.ubuntu.com/ubuntu/dists/noble-security/InRelease is not valid yet (invalid for another 5h 37min 18s).
 #    Updates for this repository will not be applied.
 # 3. 不能直接读取 rtc，因为默认情况 windows rtc 是本地时间，linux rtc 是 utc 时间

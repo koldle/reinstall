@@ -6,9 +6,8 @@
 # alpine 默认没有 bash，因此 shebang 用 sh，再 exec 切换到 bash
 
 set -eE
-confhome=https://raw.githubusercontent.com/bin456789/reinstall/main
-confhome_cn=https://cnb.cool/bin456789/reinstall/-/git/raw/main
-# confhome_cn=https://www.ghproxy.cc/https://raw.githubusercontent.com/bin456789/reinstall/main
+confhome=https://raw.githubusercontent.com/koldle/reinstall/main
+confhome_cn=https://ghfast.top/https://raw.githubusercontent.com/koldle/reinstall/main
 
 # 用于判断 reinstall.sh 和 trans.sh 是否兼容
 SCRIPT_VERSION=4BACD833-A585-23BA-6CBB-9AA4E08E0004
@@ -111,7 +110,7 @@ Usage: $reinstall_____ anolis      7|8|23
                        [--rdp-port    PORT]
                        [--add-driver  INF_OR_DIR]
 
-Manual: https://github.com/bin456789/reinstall
+Manual: https://github.com/koldle/reinstall
 
 EOF
     exit 1
@@ -3124,7 +3123,7 @@ build_extra_cmdline() {
     # https://salsa.debian.org/installer-team/rootskel/-/blob/master/src/lib/debian-installer-startup.d/S02module-params?ref_type=heads
     for key in confhome hold force_boot_mode force_cn force_old_windows_setup cloud_image main_disk \
         elts deb_mirror \
-        ssh_port rdp_port web_port allow_ping; do
+        ssh_port rdp_port web_port allow_ping NIXOS_EFI_SIZE_MB; do
         value=${!key}
         if [ -n "$value" ]; then
             is_need_quote "$value" &&
@@ -4588,6 +4587,11 @@ done
 
 # 检查必须的参数
 verify_os_args
+
+if [ -n "$NIXOS_EFI_SIZE_MB" ] &&
+    ! { is_digit "$NIXOS_EFI_SIZE_MB" && [ "$NIXOS_EFI_SIZE_MB" -ge 1 ]; }; then
+    error_and_exit "Invalid NIXOS_EFI_SIZE_MB: $NIXOS_EFI_SIZE_MB"
+fi
 
 # 密码
 if ! is_netboot_xyz && [ -z "$ssh_keys" ] && [ -z "$password" ]; then
