@@ -16,7 +16,6 @@ fi
 # 安装环境下 tty 不一定齐全
 # hytron 有ttyS0 但无法写入
 # 用于 cmdline 引导参数时，明确排除不可写的 tty，避免 getty 反复重启
-# https://github.com/bin456789/reinstall/issues/620
 
 if [ "$prefix" = "console=" ]; then
     is_for_cmdline=true

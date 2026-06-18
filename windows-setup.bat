@@ -242,7 +242,6 @@ rem server 23h2 会无法运行
 rem 使用 /installfrom 可以解决?
 
 rem 有的精简版 iso install.wim 根目录没有 setup.exe
-rem https://github.com/bin456789/reinstall/issues/578
 
 if "%ForceOldSetup%"=="1" if exist Y:\sources\setup.exe (
     set setup=Y:\sources\setup.exe
